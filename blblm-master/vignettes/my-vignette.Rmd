@@ -1,0 +1,101 @@
+---
+title: "my-vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{my-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+
+# q1
+```{r setup}
+library(blblm)
+```
+
+
+
+#On the basis provided by professor, I make revisions on blblm by using 'pbapply' for parallelization, so that we can see the progress bar.
+#The parallelization part will check how many CPU the machine has, and the default number is 1, which means not use parallelization. We can change the CPU used for computation by change the number of num_core. If we set the number more than the CPUs the machine has, it will use the maximum CPU the machine has.
+
+
+Check CPU numbers：
+```{r}
+parallel::detectCores()
+```
+
+
+```{r}
+library(parallel)
+library(pbapply)
+my_blm  <- blblm(mpg ~ wt * hp, data = mtcars, m = 2, B = 500, num_core = 4)
+```
+
+```{r}
+sigma(my_blm)
+```
+
+```{r}
+sigma(my_blm, confidence = TRUE)
+```
+
+```{r}
+predict(my_blm, new_data = data.frame(wt = c(2.5, 3), hp = c(150, 170)))
+```
+
+```{r}
+predict(my_blm, new_data = data.frame(wt = c(2.5, 3), hp = c(150, 170)), confidence = TRUE)
+```
+# q2
+
+##Allow user to specify the files process to the worker.
+```{r}
+library(tidyverse)
+
+# create a data file
+create_files <- "idol_files"
+dir.create(create_files)
+
+create_data_csv <- function(i) {
+  mtcars %>% slice(sample(1:nrow(mtcars), size = 20, replace = FALSE)) %>% 
+    write.csv(file = paste0(create_files, "/data_", i, ".csv"), row.names = FALSE)
+  cat(i, "\n")
+}
+
+lapply(X = 1:100, FUN = create_data_csv)
+```
+
+##Get the file location, and get result by lm.
+```{r}
+all_file_path <- paste0(create_files, "//", list.files(path = create_files))
+
+lm_result <- cal_csv(file_path = all_file_path, mpg ~ wt * hp)
+```
+
+
+
+# q3
+#Below is the 'lm' function in CPP verzion.
+```{r}
+lm_cpp <- my_lm_with_cpp(mpg ~ wt * hp, data = mtcars)
+summary(lm_cpp)
+```
+
+```{r}
+object = lm_cpp
+predict_my_lm_with_cpp(lm_cpp, new_data = data.frame(wt = c(2.5, 3), hp = c(150, 170)))
+```
+
+```{r}
+confit.my_lm_with_cpp(lm_cpp, confidence = TRUE)
+```
+
+
